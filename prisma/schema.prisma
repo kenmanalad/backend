@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Lead {
+  id                 Int                     @id @default(autoincrement())
+  dateCreated        DateTime                @default(now())
+  status             String                  @default("New")
+  projectManagerName String?
+  projectManagerId   Int?
+  clientId           Int      
+  client             Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  presentationLogs   ClientPresentationLog[]
+  contactLogs        ContactLog[]
+  initialProject     InitialProject?
+  quotation          Quotation?
+  siteInspections    SiteInspection[]
+}
+
+model Client {
+  id               Int      @id @default(autoincrement())
+  dateCreated      DateTime @default(now())
+  fullName         String
+  mobileNumber     String
+  preferredContact String
+  emailAddress     String?
+  lead             Lead[]     
+}
+
+model InitialProject {
+  id                      Int      @id @default(autoincrement())
+  dateCreated             DateTime @default(now())
+  projectTitle            String
+  projectType             String
+  briefProjectDescription String
+  priority                String
+  siteAddress             String
+  existingStructure       Boolean
+  leadId                  Int      @unique
+  lead                    Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model ContactLog {
+  id             Int      @id @default(autoincrement())
+  dateCreated    DateTime @default(now())
+  salesAgentName String
+  salesAgentId   Int
+  method         String
+  summary        String
+  status         String
+  leadId         Int
+  lead           Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model SiteInspection {
+  id             Int                    @id @default(autoincrement())
+  dateCreated    DateTime               @default(now())
+  engineerId     Int?
+  engineerName   String?
+  inspectionDate DateTime?
+  scheduledTime  DateTime?
+  leadId         Int
+  lead           Lead                   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  reports        SiteInspectionReport[]
+}
+
+model SiteInspectionReport {
+  id                  Int              @id @default(autoincrement())
+  dateCreated         DateTime         @default(now())
+  status              String
+  arrivalTime         DateTime?
+  completionTime      DateTime?
+  siteDescription     String?
+  addressConfirmation Boolean
+  siteInspectionId    Int
+  siteInspection      SiteInspection   @relation(fields: [siteInspectionId], references: [id], onDelete: Cascade)
+  photographs         SitePhotograph[]
+}
+
+model SitePhotograph {
+  id                     Int                  @id @default(autoincrement())
+  dateCreated            DateTime             @default(now())
+  name                   String
+  photoLocation          String
+  siteInspectionReportId Int
+  siteInspectionReport   SiteInspectionReport @relation(fields: [siteInspectionReportId], references: [id], onDelete: Cascade)
+}
+
+model Quotation {
+  id                Int               @id @default(autoincrement())
+  dateCreated       DateTime          @default(now())
+  estimatorName     String?
+  estimatorId       Int?
+  warrantyPeriod    String?
+  projectDuration   String?
+  quotationValidity String?
+  leadId            Int               @unique
+  lead              Lead              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  reports           QuotationReport[]
+}
+
+model QuotationReport {
+  id                       Int                       @id @default(autoincrement())
+  dateCreated              DateTime                  @default(now())
+  version                  Int
+  status                   String
+  vat                      Int
+  contingency              Int
+  markup                   Int
+  overhead                 Int
+  directCost               Float?
+  totalLaborCost           Float?
+  totalEquipmentCost       Float?
+  totalMaterialCost        Float?
+  totalSubContractorCost   Float?
+  grandTotal               Float?
+  quotationId              Int
+  billOfQuantities         BillOfQuantity[]
+  equipmentCosts           EquipmentCost[]
+  laborCosts               LaborCost[]
+  materialCosts            MaterialCost[]
+  progressBillingSchedules ProgressBillingSchedule[]
+  quotation                Quotation                 @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  scopes                   Scope[]
+  subcontractorCosts       SubcontractorCost[]
+}
+
+model ProgressBillingSchedule {
+  id                Int             @id @default(autoincrement())
+  dateCreated       DateTime        @default(now())
+  name              String
+  milestone         String
+  method            String
+  value             Float
+  remarks           String?
+  quotationReportId Int
+  quotationReport   QuotationReport @relation(fields: [quotationReportId], references: [id], onDelete: Cascade)
+}
+
+model LaborCost {
+  id                Int             @id @default(autoincrement())
+  dateCreated       DateTime        @default(now())
+  trade             String
+  laborBasis        String
+  quantity          Int
+  rate              Float
+  total             Float
+  quotationReportId Int
+  quotationReport   QuotationReport @relation(fields: [quotationReportId], references: [id], onDelete: Cascade)
+}
+
+model MaterialCost {
+  id                Int             @id @default(autoincrement())
+  dateCreated       DateTime        @default(now())
+  materialName      String
+  quantity          Int
+  unit              Int
+  unitPrice         Float
+  supplier          String?
+  total             Float
+  quotationReportId Int
+  quotationReport   QuotationReport @relation(fields: [quotationReportId], references: [id], onDelete: Cascade)
+}
+
+model EquipmentCost {
+  id                Int             @id @default(autoincrement())
+  dateCreated       DateTime        @default(now())
+  equipmentName     String
+  duration          String
+  rate              Float
+  fuelAllowance     Float
+  isRent            Boolean
+  total             Float
+  quotationReportId Int
+  quotationReport   QuotationReport @relation(fields: [quotationReportId], references: [id], onDelete: Cascade)
+}
+
+model SubcontractorCost {
+  id                Int             @id @default(autoincrement())
+  dateCreated       DateTime        @default(now())
+  name              String
+  scope             String
+  amount            Float
+  total             Float
+  quotationReportId Int
+  quotationReport   QuotationReport @relation(fields: [quotationReportId], references: [id], onDelete: Cascade)
+}
+
+model Scope {
+  id                Int             @id @default(autoincrement())
+  dateCreated       DateTime        @default(now())
+  name              String
+  description       String
+  isIncluded        Boolean
+  remarks           String?
+  quotationReportId Int
+  quotationReport   QuotationReport @relation(fields: [quotationReportId], references: [id], onDelete: Cascade)
+}
+
+model BillOfQuantity {
+  id                Int             @id @default(autoincrement())
+  dateCreated       DateTime        @default(now())
+  workItem          String
+  workCategory      String
+  unit              String
+  unitCost          Float
+  quantity          Int
+  total             Float
+  quotationReportId Int
+  quotationReport   QuotationReport @relation(fields: [quotationReportId], references: [id], onDelete: Cascade)
+}
+
+model ClientPresentationLog {
+  id                 Int      @id @default(autoincrement())
+  dateCreated        DateTime @default(now())
+  datePresented      DateTime
+  salesAgentName     String?
+  salesAgentId       String?
+  presentationMethod String
+  clientResponse     String
+  clientFeedback     String
+  leadId             Int
+  lead               Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id            Int      @id @default(autoincrement())
+  dateCreated   DateTime @default(now())
+  reviewStatus  String
+  reviewRemarks String?
+  phase         String
+  reportId      Int      @unique
+  reviewerId    Int
+  reviewerName  String
+  report_id     Int
+}
